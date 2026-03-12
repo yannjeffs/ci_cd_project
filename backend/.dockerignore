@@ -1,0 +1,43 @@
+# Include any files or directories that you don't want to be copied to your
+# container here (e.g., local build artifacts, temporary files, etc.).
+#
+# For more help, visit the .dockerignore file reference guide at
+# https://docs.docker.com/go/build-context-dockerignore/
+
+**/.classpath
+**/.dockerignore
+**/.env
+**/.env.backup
+**/.phpunit.result.cache
+**/.git
+**/.gitignore
+**/.gitattributes
+**/.project
+**/.settings
+**/Homestead.json
+**/Homestead.yaml
+**/.toolstarget
+**/.vs
+**/.vscode
+**/.next
+**/.cache
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/charts
+**/docker-compose*
+**/compose.y*ml
+**/docker-compose.yml
+!**/composer.json
+!**/composer.lock
+**/Dockerfile*
+**/npm-debug.log
+**/yarn-error.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+**/public/hot
+**/public/storage
+**/storage/*.key
+LICENSE
+README.md

@@ -1,0 +1,75 @@
+services:
+  # Base de données MySQL
+  db:
+    image: mysql:8.0
+    container_name: sgee_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel_sgee
+      MYSQL_USER: sgee_user
+      MYSQL_PASSWORD: sgee_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"  # Changé pour éviter conflit avec MySQL local
+    networks:
+      - sgee-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MailHog pour tester les emails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sgee_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - sgee-network
+
+  # Backend Laravel
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sgee_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    volumes:
+      - ./backend/storage:/var/www/storage
+      - ./backend/bootstrap/cache:/var/www/bootstrap/cache
+    ports:
+      - "8000:8000"
+    networks:
+      - sgee-network
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sgee_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - sgee-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  sgee-network:
+    driver: bridge
