@@ -6,6 +6,7 @@ on:
     paths: ['backend/**']
   pull_request:
     paths: ['backend/**']
+    branches: [develop]
 
 jobs:
   ci:
@@ -20,6 +21,7 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: laravel_test
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
         ports:
           - 3306:3306
         options: >-
