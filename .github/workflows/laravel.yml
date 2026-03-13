@@ -3,16 +3,19 @@ name: Laravel
 on:
   push:
     branches: [ "develop" ]
-    paths: [ '**' ]
+    paths: [ 'backend/**' ]
   pull_request:
     branches: [ "develop" ]
-    paths: [ '**' ]
+    paths: [ 'backend/**' ]
 
 jobs:
   laravel-tests:
     runs-on: ubuntu-latest
 
-    # Définition du service MySQL pour les tests
+    defaults:
+      run:
+        working-directory: ./backend
+
     services:
       mysql:
         image: mysql:8.4
@@ -29,7 +32,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
 
       - name: Copy .env
