@@ -3,10 +3,10 @@ name: Laravel
 on:
   push:
     branches: [ "develop" ]
-    paths: [ 'backend/**' ]
+    paths: [ '**' ]
   pull_request:
     branches: [ "develop" ]
-    paths: [ 'backend/**' ]
+    paths: [ '**' ]
 
 jobs:
   laravel-tests:
@@ -16,6 +16,7 @@ jobs:
       run:
         working-directory: ./backend
 
+    # Définition du service MySQL pour les tests
     services:
       mysql:
         image: mysql:8.4
