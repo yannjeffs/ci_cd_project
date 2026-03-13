@@ -42,7 +42,7 @@ jobs:
           path: backend/vendor
           key: composer-${{ hashFiles('backend/composer.lock') }}
 
-      - run: composer install --no-interaction --prefer-dist
+      - run: composer install --no-interaction --prefer-dist --verbose
 
       - name: Préparer le .env de test
         run: |
