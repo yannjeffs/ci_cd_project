@@ -108,7 +108,7 @@ class AgentDocumentsTest extends TestCase
             'fichier_path' => 'documents/test2.pdf',
             'date_televersement' => now(),
             'statut' => 'EN_ATTENTE',
-            'departement_id' => 1
+            'departement_id' => $departement->id
         ]);
 
         // Valider
@@ -127,7 +127,7 @@ class AgentDocumentsTest extends TestCase
             'fichier_path' => 'documents/test3.pdf',
             'date_televersement' => now(),
             'statut' => 'EN_ATTENTE',
-            'departement_id' => 1
+            'departement_id' => $departement->id
         ]);
 
         $respRej = $this->actingAs($agent, 'sanctum')->postJson("/api/agent/documents/{$doc2->id_document}/reject", ['motif_rejet' => 'Incomplet']);
