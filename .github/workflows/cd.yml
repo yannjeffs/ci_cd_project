@@ -1,0 +1,78 @@
+name: CD - Build & Deploy
+
+on:
+  workflow_run:
+    workflows: ["Laravel", "Frontend CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build et push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+
+      - name: Build et push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Charger le kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Mettre à jour les images dans les manifests
+        run: |
+          sed -i "s|DOCKERHUB_USERNAME/frontend:latest|${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}|g" k8s/frontend-deployment.yml
+          sed -i "s|DOCKERHUB_USERNAME/backend:latest|${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}|g" k8s/backend-deployment.yml
+
+      - name: Créer les secrets Kubernetes
+        run: |
+          kubectl create secret generic mysql-secret \
+            --from-literal=database=laravel \
+            --from-literal=username=laravel_user \
+            --from-literal=password=${{ secrets.DB_PASSWORD }} \
+            --from-literal=root-password=${{ secrets.DB_ROOT_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl create secret generic laravel-secret \
+            --from-literal=app-key=${{ secrets.APP_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Déployer sur Kubernetes
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/frontend
+          kubectl rollout status deployment/backend

@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'laravel'
+    static_configs:
+      - targets: ['your-laravel-staging.onrender.com']
+    metrics_path: '/metrics'
+    scheme: https
+
+  - job_name: 'react-nginx'
+    static_configs:
+      - targets: ['your-react-staging.onrender.com']
+    metrics_path: '/metrics'
+    scheme: https
