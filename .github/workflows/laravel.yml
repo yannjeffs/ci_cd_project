@@ -9,15 +9,159 @@ on:
     paths: [ '**' ]
 
 jobs:
-  # JOB 1 : Installation des dépendances
-  laravel-tests:
+  checkout:
     runs-on: ubuntu-latest
 
     defaults:
       run:
         working-directory: ./backend
 
-    # JOB 2 : Définition du service MySQL pour les tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache repository
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+  setup-php:
+    runs-on: ubuntu-latest
+    needs: checkout
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Restore repository cache
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
+
+  install-dependencies:
+    runs-on: ubuntu-latest
+    needs: setup-php
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Restore repository cache
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
+
+      - name: Install Dependencies
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --verbose
+
+      - name: Cache vendor
+        uses: actions/cache@v4
+        with:
+          path: ./backend/vendor
+          key: vendor-${{ hashFiles('**/composer.lock') }}
+
+  copy-env:
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Restore repository cache
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Cache env
+        uses: actions/cache@v4
+        with:
+          path: ./backend/.env
+          key: env-${{ github.sha }}
+
+  generate-key:
+    runs-on: ubuntu-latest
+    needs: copy-env
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Restore repository cache
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Restore vendor cache
+        uses: actions/cache@v4
+        with:
+          path: ./backend/vendor
+          key: vendor-${{ hashFiles('**/composer.lock') }}
+
+      - name: Restore env cache
+        uses: actions/cache@v4
+        with:
+          path: ./backend/.env
+          key: env-${{ github.sha }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
+
+      - name: Generate key
+        run: php artisan key:generate
+
+  directory-permissions:
+    runs-on: ubuntu-latest
+    needs: generate-key
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Restore repository cache
+        uses: actions/cache@v4
+        with:
+          path: .
+          key: repo-${{ github.sha }}
+
+      - name: Directory Permissions
+        run: chmod -R 777 storage bootstrap/cache
+
+  laravel-tests:
+    runs-on: ubuntu-latest
+    needs: directory-permissions
+
+    defaults:
+      run:
+        working-directory: ./backend
+
     services:
       mysql:
         image: mysql:8.4
@@ -31,18 +175,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # JOB 3 : Configuration de PHP
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
 
-      - name: Copy .env
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      - name: Restore vendor cache
+        uses: actions/cache@v4
+        with:
+          path: ./backend/vendor
+          key: vendor-${{ hashFiles('**/composer.lock') }}
 
-      - name: Install Dependencies
-        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --verbose
+      - name: Restore env cache
+        uses: actions/cache@v4
+        with:
+          path: ./backend/.env
+          key: env-${{ github.sha }}
 
       - name: Generate key
         run: php artisan key:generate
@@ -50,7 +199,6 @@ jobs:
       - name: Directory Permissions
         run: chmod -R 777 storage bootstrap/cache
 
-      # JOB 4 : Exécution des tests
       - name: Execute tests via PHPUnit/Pest
         env:
           DB_CONNECTION: mysql
