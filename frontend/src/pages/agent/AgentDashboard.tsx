@@ -6,18 +6,23 @@ export default function AgentDashboard() {
   const [stats, setStats] = useState({ pending: 0, validated: 0, rejected: 0 })
   const [refreshKey, setRefreshKey] = useState(0)
 
-  useEffect(() => {
-    loadStats()
-  }, [refreshKey])
 
+  useEffect(() => {
   const loadStats = async () => {
     try {
       const res = await api.get('/agent/stats')
-      setStats(res.data.data || res.data || { pending: 0, validated: 0, rejected: 0 })
+      setStats(res.data.data || res.data || {
+        pending: 0,
+        validated: 0,
+        rejected: 0
+      })
     } catch (e) {
       console.error('Erreur stats agent', e)
     }
   }
+
+  loadStats()
+}, [refreshKey])
 
   const handleDocumentProcessed = () => {
     // Recharger les stats quand un document est traité

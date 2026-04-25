@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { AxiosError } from 'axios'
 
 interface Filiere {
   id: number
@@ -104,11 +105,7 @@ export default function StudentProfile() {
     concours_id: '',
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [filieresRes, niveauxRes, departementsRes, centreDepotsRes, centreExamensRes, concoursRes, meRes] = await Promise.all([
         api.get('/filieres'),
@@ -148,13 +145,16 @@ export default function StudentProfile() {
           setSelectedConcours(meRes.data.etudiant.concours)
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur chargement données:', err)
       setError('Erreur lors du chargement des données. Veuillez rafraîchir la page.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+  }, [loadData])
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -232,8 +232,8 @@ export default function StudentProfile() {
       setEtudiant(response.data.etudiant)
 
       setTimeout(() => navigate('/dashboard'), 2000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la création du profil')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de la création du profil')
     } finally {
       setSaving(false)
     }
@@ -763,7 +763,35 @@ function FormSection({ title, icon, linear, children }: { title: string; icon: R
   )
 }
 
-function InputField({ label, name, type = "text", value, onChange, placeholder, helper, required = false }: any) {
+// Types pour les options du SelectField
+interface SelectOption {
+  value: string | number
+  label: string
+}
+
+// Types pour InputField
+interface InputFieldProps {
+  label: string
+  name: string
+  type?: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  helper?: string
+  required?: boolean
+}
+
+// Types pour SelectField
+interface SelectFieldProps {
+  label: string
+  name: string
+  value: string | number
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
+  options: SelectOption[]
+  required?: boolean
+}
+
+function InputField({ label, name, type = "text", value, onChange, placeholder, helper, required = false }: InputFieldProps) {
   return (
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
@@ -781,7 +809,7 @@ function InputField({ label, name, type = "text", value, onChange, placeholder, 
   )
 }
 
-function SelectField({ label, name, value, onChange, options, required = false }: any) {
+function SelectField({ label, name, value, onChange, options, required = false }: SelectFieldProps) {
   return (
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
@@ -792,7 +820,7 @@ function SelectField({ label, name, value, onChange, options, required = false }
         className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white hover:border-gray-300"
         required={required}
       >
-        {options.map((opt: any) => (
+        {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>

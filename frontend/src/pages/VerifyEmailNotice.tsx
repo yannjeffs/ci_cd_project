@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { resendVerification } from '../services/api'
+import { AxiosError } from 'axios'
 
 export default function VerifyEmailNotice() {
   const location = useLocation()
@@ -22,8 +23,8 @@ export default function VerifyEmailNotice() {
     try {
       await resendVerification(email)
       setMessage('Un nouveau lien de vérification a été envoyé !')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l\'envoi')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de l\'envoi')
     } finally {
       setLoading(false)
     }

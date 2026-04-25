@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -12,50 +12,52 @@ interface Message {
 export default function ChatWidget() {
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messageIdRef = useRef(0)
 
-  // Charger les suggestions au démarrage
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      loadSuggestions()
-      // Message de bienvenue
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        role: 'assistant',
-        content: `Bonjour${user ? ' ' + user.prenom : ''} ! 👋 Je suis l'assistant virtuel du SGEE. Je peux vous aider avec vos questions sur les concours, les inscriptions, les documents requis, etc. Comment puis-je vous aider aujourd'hui?`,
-        timestamp: new Date()
-      }
-      setMessages([welcomeMessage])
-    }
-  }, [isOpen])
+  // Initialiser messages avec le message de bienvenue dès le départ
+const buildWelcomeMessage = (prenom?: string): Message => ({
+  id: 'welcome',
+  role: 'assistant',
+  content: `Bonjour${prenom ? ' ' + prenom : ''} ! 👋 Je suis l'assistant virtuel du SGEE. Je peux vous aider avec vos questions sur les concours, les inscriptions, les documents requis, etc. Comment puis-je vous aider aujourd'hui?`,
+  timestamp: new Date()
+})
+
+// State initialisé directement avec le message de bienvenue
+const [messages, setMessages] = useState<Message[]>([buildWelcomeMessage(user?.prenom)])
+
+// useEffect uniquement pour charger les suggestions (pas de setState synchrone)
+useEffect(() => {
+  if (!isOpen) return
+}, [isOpen, suggestions])
+
+// Mettre à jour le message de bienvenue si l'utilisateur se connecte en cours de session
+useEffect(() => {
+  if (!user) return
+  setMessages(prev =>
+    prev.map(msg =>
+      msg.id === 'welcome'
+        ? { ...msg, content: buildWelcomeMessage(user.prenom).content }
+        : msg
+    )
+  )
+}, [user])
 
   // Scroll automatique vers le bas
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const loadSuggestions = async () => {
-    try {
-      const endpoint = user ? '/chat/suggestions' : '/chat/public'
-      const response = await api.get(endpoint)
-      if (response.data.suggestions) {
-        setSuggestions(response.data.suggestions)
-      }
-    } catch (error) {
-      console.error('Erreur chargement suggestions:', error)
-    }
-  }
-
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return
 
     // Ajouter message utilisateur
+    messageIdRef.current += 1
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${messageIdRef.current}`,
       role: 'user',
       content: text,
       timestamp: new Date()
@@ -68,8 +70,9 @@ export default function ChatWidget() {
       const endpoint = user ? '/chat' : '/chat/public'
       const response = await api.post(endpoint, { message: text })
       
+      messageIdRef.current += 1
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `assistant-${messageIdRef.current}`,
         role: 'assistant',
         content: response.data.message,
         timestamp: new Date()
@@ -79,19 +82,21 @@ export default function ChatWidget() {
       if (response.data.suggestions) {
         setSuggestions(response.data.suggestions)
       }
-    } catch (error: any) {
-      console.error('Erreur chatbot:', error)
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } }
+      console.error('Erreur chatbot:', err)
+      messageIdRef.current += 1
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `error-${messageIdRef.current}`,
         role: 'assistant',
-        content: error.response?.data?.message || "Désolé, je rencontre un problème. Veuillez réessayer.",
+        content: err.response?.data?.message || "Désolé, je rencontre un problème. Veuillez réessayer.",
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   const handleSuggestionClick = (suggestion: string) => {
     sendMessage(suggestion)

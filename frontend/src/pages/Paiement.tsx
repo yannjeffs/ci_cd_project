@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import ConcoursSelector from '../components/ConcoursSelector'
 import { useEnrollement } from '../contexts/EnrollementContext'
+import { AxiosError } from 'axios'
 
 interface Etudiant {
   id: number
@@ -53,14 +54,12 @@ export default function Paiement() {
   const [preuveFichier, setPreuveFichier] = useState<File | null>(null)
 
   useEffect(() => {
-    loadData()
     
     let pollInterval = 10000
     let timeoutId: ReturnType<typeof setTimeout>
     
     const poll = () => {
       if (paiement && paiement.statut === 'EN_ATTENTE') {
-        loadData()
         pollInterval = Math.min(pollInterval * 1.2, 60000)
         timeoutId = setTimeout(poll, pollInterval)
       }
@@ -73,7 +72,7 @@ export default function Paiement() {
     return () => {
       if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [activeEnrollement, paiement?.statut])
+  }, [activeEnrollement, paiement?.statut, paiement])
 
   const loadData = async () => {
     try {
@@ -132,8 +131,8 @@ export default function Paiement() {
 
       setSuccess('Paiement soumis avec succès ! En attente de validation.')
       setPaiement(response.data.paiement)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de la soumission du paiement')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de la soumission du paiement')
     } finally {
       setSubmitting(false)
     }

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import ConcoursSelector from '../components/ConcoursSelector'
 import { useEnrollement } from '../contexts/EnrollementContext'
+import { AxiosError } from 'axios'
 
 interface Document {
   id_document: number
@@ -31,11 +32,7 @@ export default function Documents() {
   const [success, setSuccess] = useState('')
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadDocuments()
-  }, [activeEnrollement])
-
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       const response = await api.get('/my-documents')
       setDocuments(response.data.data || [])
@@ -45,7 +42,10 @@ export default function Documents() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+  }, [loadDocuments,activeEnrollement])
 
   const getDocumentForType = (type: string) => {
     return documents.find(doc => doc.type_document === type && doc.statut !== 'REJETE')
@@ -71,8 +71,12 @@ export default function Documents() {
       setSuccess(`${REQUIRED_DOCUMENTS.find(d => d.value === type)?.label} téléversé avec succès !`)
       setTimeout(() => setSuccess(''), 3000)
       loadDocuments()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du téléversement')
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        setError(err.response?.data?.message || 'Erreur lors du téléversement')
+      } else {
+        setError('Erreur inconnue lors du téléversement')
+      }
     } finally {
       setUploadingType(null)
     }

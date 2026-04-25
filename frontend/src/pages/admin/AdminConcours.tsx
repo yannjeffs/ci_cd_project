@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
+import { AxiosError } from 'axios'
 
 interface Concours {
   id: number
@@ -36,11 +37,7 @@ export default function AdminConcours() {
     conditions: ''
   })
 
-  useEffect(() => {
-    loadConcours()
-  }, [])
-
-  const loadConcours = async () => {
+  const loadConcours = useCallback(async () => {
     try {
       const response = await api.get('/concours')
       setConcours(response.data)
@@ -49,7 +46,10 @@ export default function AdminConcours() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+  }, [loadConcours])
 
   const resetForm = () => {
     setFormData({
@@ -113,8 +113,8 @@ export default function AdminConcours() {
       setShowModal(false)
       resetForm()
       loadConcours()
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de l\'enregistrement')
     } finally {
       setSaving(false)
     }
@@ -126,8 +126,8 @@ export default function AdminConcours() {
     try {
       await api.delete(`/concours/${id}`)
       loadConcours()
-    } catch (err) {
-      alert('Erreur lors de la suppression')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de la suppression')
     }
   }
 

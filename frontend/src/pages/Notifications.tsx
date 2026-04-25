@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
 
 interface Notification {
@@ -8,7 +8,7 @@ interface Notification {
     message: string
     lu: boolean
     created_at: string
-    data?: any
+    data?: Record<string, unknown>
 }
 
 export default function Notifications() {
@@ -16,11 +16,8 @@ export default function Notifications() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
-    useEffect(() => {
-        loadNotifications()
-    }, [])
 
-    const loadNotifications = async () => {
+    const loadNotifications = useCallback(async () => {
         try {
             const response = await api.get('/notifications')
             setNotifications(response.data.data.data || response.data.data || [])
@@ -29,7 +26,10 @@ export default function Notifications() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+    }, [loadNotifications])
 
     const markAsRead = async (id: number) => {
         try {
@@ -182,7 +182,7 @@ export default function Notifications() {
                             <div className="p-5">
                                 <div className="flex gap-4">
                                     {/* Icône */}
-                                    <div className="text-3xl flex-shrink-0">
+                                    <div className="text-3xl shrink-0">
                                         {getNotificationIcon(notif.type)}
                                     </div>
 

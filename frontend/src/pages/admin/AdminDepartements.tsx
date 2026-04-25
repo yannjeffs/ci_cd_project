@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../../services/api'
 
+// ✅ Interface unique et complète — suppression du doublon à l'intérieur de la fonction
 interface Departement {
   id: number
   nom: string
-  description: string
+  description?: string
   concours_id?: number
   concours?: {
     id: number
@@ -19,26 +20,28 @@ export default function AdminDepartements() {
   const [selectedConcours, setSelectedConcours] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'compact'>('table')
 
-  useEffect(() => {
-    loadDepartements()
-  }, [])
-
-  const loadDepartements = async () => {
+  // ✅ Parsing correct de la réponse API {status, data: [...]}
+  const loadDepartements = useCallback(async () => {
     try {
       const response = await api.get('/departements')
-      setDepartements(response.data)
+      const data: Departement[] = response.data?.data || response.data || []
+      setDepartements(data)
     } catch (err) {
       console.error('Erreur chargement départements:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const handleExportPDF = async (departement: Departement) => {
+  // ✅ useEffect qui appelle bien loadDepartements
+  useEffect(() => {
+  }, [loadDepartements])
+
+  const handleExportPDF = (departement: Departement) => {
     handleExport(departement, 'pdf')
   }
 
-  const handleExportExcel = async (departement: Departement) => {
+  const handleExportExcel = (departement: Departement) => {
     handleExport(departement, 'excel')
   }
 
@@ -91,17 +94,14 @@ export default function AdminDepartements() {
 
   // Grouper les départements par concours
   const groupedDepartments = departements.reduce((acc, dept) => {
-    const concoursName = dept.concours?.nom || 'Autres Départements';
-    if (!acc[concoursName]) {
-      acc[concoursName] = [];
-    }
-    acc[concoursName].push(dept);
-    return acc;
-  }, {} as Record<string, Departement[]>);
+    const concoursName = dept.concours?.nom || 'Autres Départements'
+    if (!acc[concoursName]) acc[concoursName] = []
+    acc[concoursName].push(dept)
+    return acc
+  }, {} as Record<string, Departement[]>)
 
-  const concoursNames = Object.keys(groupedDepartments);
-  // const activeConcours = selectedConcours || concoursNames[0];
-  const filteredDepts = selectedConcours ? groupedDepartments[selectedConcours] : departements;
+  const concoursNames = Object.keys(groupedDepartments)
+  const filteredDepts = selectedConcours ? groupedDepartments[selectedConcours] : departements
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50/30 via-sky-50/50 to-indigo-50/30 pb-16">
@@ -110,10 +110,9 @@ export default function AdminDepartements() {
         <div className="relative mb-10">
           <div className="absolute inset-0 bg-linear-to-r from-blue-400/20 via-sky-400/20 to-indigo-400/20 rounded-[2.5rem] blur-3xl"></div>
           <div className="relative bg-white/40 backdrop-blur-xl rounded-[2.5rem] shadow-xl border border-white/60 overflow-hidden">
-            {/* Motifs décoratifs */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-blue-200/20 to-transparent rounded-full -mr-48 -mt-48"></div>
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-linear-to-tr from-sky-200/20 to-transparent rounded-full -ml-40 -mb-40"></div>
-            
+
             <div className="relative p-8 lg:p-10">
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
@@ -131,8 +130,8 @@ export default function AdminDepartements() {
                     </p>
                   </div>
                 </div>
-                
-                {/* Toggle vue redesigné */}
+
+                {/* Toggle vue */}
                 <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-2xl p-2 border border-white/60 shadow-md">
                   <button
                     onClick={() => setViewMode('table')}
@@ -166,7 +165,7 @@ export default function AdminDepartements() {
           </div>
         </div>
 
-        {/* Statistiques en haut */}
+        {/* Statistiques */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             icon={
@@ -215,7 +214,7 @@ export default function AdminDepartements() {
           />
         </div>
 
-        {/* Filtres par concours en pills horizontaux */}
+        {/* Filtres par concours */}
         <div className="bg-white/40 backdrop-blur-xl rounded-3xl shadow-lg border border-white/60 p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-md">
@@ -225,7 +224,7 @@ export default function AdminDepartements() {
             </div>
             <h2 className="text-xl font-black text-slate-800">Filtrer par concours</h2>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setSelectedConcours(null)}
@@ -247,7 +246,7 @@ export default function AdminDepartements() {
                 </span>
               </div>
             </button>
-            
+
             {concoursNames.map((concours) => (
               <button
                 key={concours}
@@ -291,21 +290,11 @@ export default function AdminDepartements() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-linear-to-r from-slate-50/80 to-blue-50/80 border-b-2 border-blue-200/50">
-                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">
-                      Département
-                    </th>
-                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">
-                      Concours
-                    </th>
-                    <th className="text-right py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">ID</th>
+                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">Département</th>
+                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">Description</th>
+                    <th className="text-left py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">Concours</th>
+                    <th className="text-right py-5 px-6 text-xs font-black text-slate-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/50">
@@ -337,40 +326,22 @@ export default function AdminDepartements() {
                             onClick={() => handleExportPDF(dept)}
                             disabled={downloading === dept.id}
                             className="group/btn flex items-center gap-2.5 px-5 py-3 bg-linear-to-r from-blue-500 to-sky-600 text-white rounded-xl hover:from-blue-600 hover:to-sky-700 transition-all font-bold text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Exporter en PDF"
                           >
                             {downloading === dept.id ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>PDF</span>
-                              </>
+                              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span>PDF</span></>
                             ) : (
-                              <>
-                                <svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                                <span>PDF</span>
-                              </>
+                              <><svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg><span>PDF</span></>
                             )}
                           </button>
                           <button
                             onClick={() => handleExportExcel(dept)}
                             disabled={downloading === dept.id}
                             className="group/btn flex items-center gap-2.5 px-5 py-3 bg-linear-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all font-bold text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Exporter en Excel"
                           >
                             {downloading === dept.id ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>XLS</span>
-                              </>
+                              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span>XLS</span></>
                             ) : (
-                              <>
-                                <svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                                <span>XLS</span>
-                              </>
+                              <><svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg><span>XLS</span></>
                             )}
                           </button>
                         </div>
@@ -387,10 +358,7 @@ export default function AdminDepartements() {
         {viewMode === 'compact' && filteredDepts.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredDepts.map((dept) => (
-              <div
-                key={dept.id}
-                className="group bg-white/50 backdrop-blur-xl rounded-3xl shadow-lg border border-white/60 p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-              >
+              <div key={dept.id} className="group bg-white/50 backdrop-blur-xl rounded-3xl shadow-lg border border-white/60 p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                 <div className="flex items-start gap-5 mb-5">
                   <div className="w-16 h-16 bg-linear-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg group-hover:scale-110 transition-transform shrink-0">
                     {dept.id}
@@ -398,9 +366,7 @@ export default function AdminDepartements() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-slate-800 text-xl mb-2 truncate">{dept.nom}</h3>
                     <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
-                      {dept.description || (
-                        <span className="text-slate-400 italic">Aucune description disponible</span>
-                      )}
+                      {dept.description || <span className="text-slate-400 italic">Aucune description disponible</span>}
                     </p>
                   </div>
                 </div>
@@ -422,40 +388,22 @@ export default function AdminDepartements() {
                     onClick={() => handleExportPDF(dept)}
                     disabled={downloading === dept.id}
                     className="group/btn flex-1 flex items-center justify-center gap-3 py-4 bg-linear-to-r from-blue-500 to-sky-600 text-white rounded-2xl hover:from-blue-600 hover:to-sky-700 transition-all font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="PDF"
                   >
                     {downloading === dept.id ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>PDF...</span>
-                      </>
+                      <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span>PDF...</span></>
                     ) : (
-                      <>
-                        <svg className="w-6 h-6 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
-                        </svg>
-                        <span>PDF</span>
-                      </>
+                      <><svg className="w-6 h-6 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg><span>PDF</span></>
                     )}
                   </button>
                   <button
                     onClick={() => handleExportExcel(dept)}
                     disabled={downloading === dept.id}
                     className="group/btn flex-1 flex items-center justify-center gap-3 py-4 bg-linear-to-r from-emerald-500 to-teal-600 text-white rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Excel"
                   >
                     {downloading === dept.id ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>XLS...</span>
-                      </>
+                      <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span>XLS...</span></>
                     ) : (
-                      <>
-                        <svg className="w-6 h-6 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
-                        </svg>
-                        <span>Excel</span>
-                      </>
+                      <><svg className="w-6 h-6 group-hover/btn:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg><span>Excel</span></>
                     )}
                   </button>
                 </div>
@@ -473,12 +421,8 @@ export default function AdminDepartements() {
               </svg>
             </div>
             <h3 className="text-3xl font-black text-slate-800 mb-4">Aucun département trouvé</h3>
-            <p className="text-slate-600/80 text-lg mb-2">
-              Aucun département ne correspond à vos critères de recherche
-            </p>
-            <p className="text-slate-500 text-sm">
-              Modifiez vos filtres ou sélectionnez un autre concours
-            </p>
+            <p className="text-slate-600/80 text-lg mb-2">Aucun département ne correspond à vos critères</p>
+            <p className="text-slate-500 text-sm">Modifiez vos filtres ou sélectionnez un autre concours</p>
           </div>
         )}
       </div>
@@ -507,7 +451,7 @@ function StatCard({
       <div className="relative flex items-center justify-between">
         <div className="flex-1">
           <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">{label}</p>
-          <p className={`font-black mb-1 ${isText ? 'text-2xl bg-linear-to-br ' + linear + ' bg-clip-text text-transparent' : 'text-5xl bg-linear-to-br ' + linear + ' bg-clip-text text-transparent'}`}>
+          <p className={`font-black mb-1 ${isText ? 'text-2xl' : 'text-5xl'} bg-linear-to-br ${linear} bg-clip-text text-transparent`}>
             {value}
           </p>
           <p className="text-sm font-medium text-slate-500">{sublabel}</p>

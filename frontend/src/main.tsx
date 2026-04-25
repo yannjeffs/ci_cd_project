@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import './index.css'
+import { initMetrics } from './services/metrics'
+
+// Initialise le monitoring des performances de l'application
+initMetrics(); // Démarre la collecte des Web Vitals dès le chargement de l'application
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

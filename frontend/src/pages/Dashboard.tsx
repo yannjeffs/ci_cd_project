@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
@@ -32,11 +32,7 @@ export default function Dashboard() {
   const [enrollement, setEnrollement] = useState<Enrollement | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadProgress()
-  }, [activeEnrollement])
-
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     try {
       // Charger les documents
       try {
@@ -66,7 +62,10 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+  }, [loadProgress, activeEnrollement])
 
   // Vérifier si tous les documents requis sont téléversés (non rejetés)
   const allDocumentsComplete = () => {

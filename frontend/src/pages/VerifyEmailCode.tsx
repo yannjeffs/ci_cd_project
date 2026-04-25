@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { AxiosError } from 'axios'
 
 export default function VerifyEmailCode() {
   const location = useLocation()
@@ -57,8 +58,8 @@ export default function VerifyEmailCode() {
       await api.post('/email/verify', { code: fullCode, email })
       setSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Code invalide')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Code invalide')
     } finally {
       setLoading(false)
     }
@@ -71,8 +72,8 @@ export default function VerifyEmailCode() {
     try {
       await api.post('/email/resend', { email })
       alert('Un nouveau code a été envoyé à votre email')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors de l\'envoi')
+    } catch (err: unknown) {
+      setError((err as AxiosError<{ message: string }>).response?.data?.message || 'Erreur lors de l\'envoi')
     } finally {
       setResending(false)
     }

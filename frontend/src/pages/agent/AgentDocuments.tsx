@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import api from '../../services/api'
 
 interface Document {
@@ -52,11 +52,7 @@ export default function AgentDocuments({ onDocumentProcessed }: AgentDocumentsPr
   const [expandedConcours, setExpandedConcours] = useState<Set<number>>(new Set())
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set())
 
-  useEffect(() => {
-    loadDocuments()
-  }, [activeTab])
-
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     setLoading(true)
     try {
       if (activeTab === 'pending') {
@@ -71,7 +67,7 @@ export default function AgentDocuments({ onDocumentProcessed }: AgentDocumentsPr
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab])
 
   const handleValidate = async (id: number) => {
     if (!confirm('Confirmer la validation de ce document ?')) return
@@ -138,7 +134,7 @@ export default function AgentDocuments({ onDocumentProcessed }: AgentDocumentsPr
     return data.map((concours) => (
       <div key={concours.concours_id} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-200">
         {/* En-tête du concours */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-5">
+        <div className="bg-linear-to-r from-green-600 to-green-700 text-white p-5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">{concours.concours_nom}</h2>

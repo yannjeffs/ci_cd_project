@@ -12,8 +12,6 @@ export default function VerifyEmail() {
     const email = searchParams.get('email')
 
     if (!token || !email) {
-      setStatus('error')
-      setMessage('Lien de vérification invalide')
       return
     }
 

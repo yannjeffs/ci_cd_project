@@ -43,7 +43,6 @@ export default function AdminDocuments() {
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    loadDocuments()
   }, [])
 
   const loadDocuments = async () => {
@@ -92,9 +91,10 @@ export default function AdminDocuments() {
       const response = await api.post(`/documents/valider-tous/${etudiantId}`)
       alert(response.data.message)
       loadDocuments()
-    } catch (error: any) {
-      console.error('Erreur validation groupée:', error)
-      alert(error.response?.data?.message || 'Erreur lors de la validation groupée')
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      console.error('Erreur validation groupée:', err)
+      alert(err.response?.data?.message || 'Erreur lors de la validation groupée')
     } finally {
       setProcessing(null)
     }

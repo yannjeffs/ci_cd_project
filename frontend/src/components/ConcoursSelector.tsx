@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { useEnrollement } from '../contexts/EnrollementContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+interface Enrollement {
+  id: number;
+  concours?: {
+    titre: string;
+  };
+  statut: string;
+}
+
 const ConcoursSelector: React.FC = () => {
   const { enrollements, activeEnrollement, setActiveEnrollement } = useEnrollement();
   const [isOpen, setIsOpen] = useState(false);
@@ -34,7 +42,7 @@ const ConcoursSelector: React.FC = () => {
     }
   };
 
-  const handleSelect = async (enrollement: any) => {
+  const handleSelect = async (enrollement: Enrollement) => {
     try {
       await setActiveEnrollement(enrollement);
       setIsOpen(false);

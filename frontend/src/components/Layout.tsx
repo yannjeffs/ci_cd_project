@@ -5,32 +5,7 @@ import ChatWidget from './ChatWidget'
 import { useState, useEffect, useRef } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 
-export default function Layout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const notifRef = useRef<HTMLDivElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    loadNotifications,
-    markAsRead,
-    markAllAsRead
-  } = useNotifications()
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
-
-  const isAdmin = user?.role?.nom_role === 'ADMIN'
-  const isAgent = user?.role?.nom_role === 'AGENT_DOCUMENTS'
-
-  // Composant NavLink pour desktop (vertical)
+// Composant NavLink pour desktop (vertical)
 function NavLink({ to, icon, children }: { to: string; icon: string; children: React.ReactNode }) {
   const location = useLocation();
   const isActive = location.pathname === to;
@@ -86,18 +61,7 @@ function NavLinkMobile({ to, icon, label }: { to: string; icon: string; label: s
   );
 }
 
-// Alternative 2: Navigation en cercle flottant
-<nav className="fixed right-6 top-1/2 -translate-y-1/2 z-50 hidden xl:block">
-  <div className="relative">
-    {/* Cercle principal */}
-    <div className="w-16 h-16 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full shadow-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
-      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </div>
-    
-    {/* Items en orbite */}
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+export default function Layout() {
       {/* Calculer les positions en cercle pour chaque item */}
     </div>
   </div>

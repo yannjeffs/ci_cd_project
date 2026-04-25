@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import ConcoursSelector from '../components/ConcoursSelector'
@@ -29,11 +29,7 @@ export default function Enrollement() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [activeEnrollement]) // Reload when active enrollement changes
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const meRes = await api.get('/me')
       setEtudiant(meRes.data.etudiant)
@@ -45,7 +41,10 @@ export default function Enrollement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+  }, [loadData, activeEnrollement]) // Reload when active enrollement changes
 
   const handleDownloadFiche = async () => {
     if (!enrollement) return
