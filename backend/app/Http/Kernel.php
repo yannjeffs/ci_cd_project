@@ -32,7 +32,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -63,5 +63,10 @@ class Kernel extends HttpKernel
         // Middleware pour le Centre Dépôt
         // Middleware pour les agents documents
         'agent_documents' => \App\Http\Middleware\AgentDocumentsMiddleware::class,
+    ];
+
+    protected $routeMiddleware = [
+        // ...
+        'prometheus.auth' => \App\Http\Middleware\PrometheusAuth::class,
     ];
 }

@@ -13,7 +13,8 @@ use App\Http\Controllers\{
     CentreDepotController,
     CentreExamenController,
     EnrollementController,
-    ConcoursController
+    ConcoursController,
+    FrontendMetricsController
 };
 
 /*
@@ -23,6 +24,8 @@ use App\Http\Controllers\{
 */
 
 // --- 1. ROUTES PUBLIQUES ---
+Route::post('/metrics/frontend', [FrontendMetricsController::class, 'store']);
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 

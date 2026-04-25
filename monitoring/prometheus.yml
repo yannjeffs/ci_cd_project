@@ -3,14 +3,17 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'laravel'
+  - job_name: 'prometheus'
     static_configs:
-      - targets: ['your-laravel-staging.onrender.com']
-    metrics_path: '/metrics'
-    scheme: https
+      - targets: ['localhost:9090']
 
-  - job_name: 'react-nginx'
-    static_configs:
-      - targets: ['your-react-staging.onrender.com']
+  - job_name: 'laravel_backend'
+    scrape_interval: 30s
     metrics_path: '/metrics'
-    scheme: https
+    scheme: 'http'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']

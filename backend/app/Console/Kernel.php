@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
     {
         // Finaliser les notifications de documents toutes les minutes
         $schedule->command('notifications:finalize-documents')->everyMinute();
+        $schedule->command('prometheus:update-gauges')->everyMinute();
     }
 
     /**
