@@ -67,8 +67,8 @@ export function useNotifications() {
 
   // Polling optimisé: uniquement le compteur toutes les 60s
   useEffect(() => {
-    loadUnreadCount()
-    const interval = setInterval(loadUnreadCount, 60000) // 60s au lieu de 30s
+    // 60s au lieu de 30s
+    const interval = setInterval(loadUnreadCount, 60000)
     return () => clearInterval(interval)
   }, [loadUnreadCount])
 

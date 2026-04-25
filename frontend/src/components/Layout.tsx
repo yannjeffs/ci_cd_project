@@ -1,4 +1,4 @@
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import UserGuide from './UserGuide'
 import ChatWidget from './ChatWidget'
@@ -62,10 +62,26 @@ function NavLinkMobile({ to, icon, label }: { to: string; icon: string; label: s
 }
 
 export default function Layout() {
-      {/* Calculer les positions en cercle pour chaque item */}
-    </div>
-  </div>
-</nav>
+  // ✅ Déclarations des states manquantes
+  const { user, logout, loading } = useAuth()
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const { notifications, unreadCount, loadNotifications, markAsRead, markAllAsRead } = useNotifications()
+
+  // ✅ Calcul des rôles
+  const isAdmin = user?.role?.nom_role === 'ADMIN'
+  const isAgent = user?.role?.nom_role === 'AGENT' || user?.role?.nom_role === 'AGENT_DOCUMENTS'
+
+  // ✅ Fonction de déconnexion manquante
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,10 +96,9 @@ export default function Layout() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Charger les notifications uniquement quand on ouvre le dropdown
   const handleOpenNotifications = () => {
     if (!showNotifications) {
-      loadNotifications(1, 10) // Charger seulement 10
+      loadNotifications(1, 10)
     }
     setShowNotifications(!showNotifications)
   }
@@ -101,7 +116,7 @@ export default function Layout() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-400">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
       </div>
     )
@@ -109,7 +124,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50">
-      {/* Header modernisé */}
+      {/* Header */}
       <header className="bg-linear-to-r from-blue-800 via-blue-900 to-blue-800 shadow-2xl border-b border-blue-700">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-20">
@@ -150,7 +165,7 @@ export default function Layout() {
                   )}
                 </button>
 
-                {/* Panneau de notifications modernisé */}
+                {/* Panneau de notifications */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
                     <div className="bg-linear-to-r from-slate-800 to-slate-900 p-5 flex justify-between items-center">
@@ -290,76 +305,57 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* Navigation modernisée */}
+      {/* Navigation desktop */}
       <nav className="fixed left-6 top-1/2 -translate-y-1/2 z-50 hidden lg:block">
-  <div className="bg-white/80 backdrop-blur-xl rounded-full shadow-2xl border-2 border-blue-100/50 p-3">
-    <div className="flex flex-col gap-2">
-      <NavLink to="/dashboard" icon="🏠">
-        Tableau de bord
-      </NavLink>
-      {!isAdmin && !isAgent && (
-        <>
-          <NavLink to="/enrollement" icon="📝">
-            Mon Enrôlement
-          </NavLink>
-          <NavLink to="/enrollements" icon="📋">
-            Mes Inscriptions
-          </NavLink>
-          <NavLink to="/documents" icon="📄">
-            Mes Documents
-          </NavLink>
-          <NavLink to="/paiement" icon="💳">
-            Mes Paiements
-          </NavLink>
-        </>
-      )}
-      {isAgent && <></>}
-      {isAdmin && (
-        <>
-          <NavLink to="/admin/paiements" icon="💰">
-            Paiements
-          </NavLink>
-          <NavLink to="/admin/documents" icon="📑">
-            Documents
-          </NavLink>
-          <NavLink to="/admin/concours" icon="🎓">
-            Concours
-          </NavLink>
-          <NavLink to="/admin/departements" icon="🏢">
-            Départements
-          </NavLink>
-        </>
-      )}
-    </div>
-  </div>
-</nav>
+        <div className="bg-white/80 backdrop-blur-xl rounded-full shadow-2xl border-2 border-blue-100/50 p-3">
+          <div className="flex flex-col gap-2">
+            <NavLink to="/dashboard" icon="🏠">Tableau de bord</NavLink>
+            {!isAdmin && !isAgent && (
+              <>
+                <NavLink to="/enrollement" icon="📝">Mon Enrôlement</NavLink>
+                <NavLink to="/enrollements" icon="📋">Mes Inscriptions</NavLink>
+                <NavLink to="/documents" icon="📄">Mes Documents</NavLink>
+                <NavLink to="/paiement" icon="💳">Mes Paiements</NavLink>
+              </>
+            )}
+            {isAdmin && (
+              <>
+                <NavLink to="/admin/paiements" icon="💰">Paiements</NavLink>
+                <NavLink to="/admin/documents" icon="📑">Documents</NavLink>
+                <NavLink to="/admin/concours" icon="🎓">Concours</NavLink>
+                <NavLink to="/admin/departements" icon="🏢">Départements</NavLink>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
 
-<nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
-  <div className="bg-white/90 backdrop-blur-xl border-t-2 border-blue-100/50 shadow-2xl">
-    <div className="flex justify-around items-center px-2 py-2 max-w-2xl mx-auto overflow-x-auto">
-      <NavLinkMobile to="/dashboard" icon="🏠" label="Dashboard" />
-      {!isAdmin && !isAgent && (
-        <>
-          <NavLinkMobile to="/enrollement" icon="📝" label="Enrôlement" />
-          <NavLinkMobile to="/enrollements" icon="📋" label="Inscriptions" />
-          <NavLinkMobile to="/documents" icon="📄" label="Documents" />
-          <NavLinkMobile to="/paiement" icon="💳" label="Paiements" />
-        </>
-      )}
-      {isAgent && <></>}
-      {isAdmin && (
-        <>
-          <NavLinkMobile to="/admin/paiements" icon="💰" label="Paiements" />
-          <NavLinkMobile to="/admin/documents" icon="📑" label="Documents" />
-          <NavLinkMobile to="/admin/concours" icon="🎓" label="Concours" />
-          <NavLinkMobile to="/admin/departements" icon="🏢" label="Départements" />
-        </>
-      )}
-    </div>
-  </div>
-</nav>
+      {/* Navigation mobile */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div className="bg-white/90 backdrop-blur-xl border-t-2 border-blue-100/50 shadow-2xl">
+          <div className="flex justify-around items-center px-2 py-2 max-w-2xl mx-auto overflow-x-auto">
+            <NavLinkMobile to="/dashboard" icon="🏠" label="Dashboard" />
+            {!isAdmin && !isAgent && (
+              <>
+                <NavLinkMobile to="/enrollement" icon="📝" label="Enrôlement" />
+                <NavLinkMobile to="/enrollements" icon="📋" label="Inscriptions" />
+                <NavLinkMobile to="/documents" icon="📄" label="Documents" />
+                <NavLinkMobile to="/paiement" icon="💳" label="Paiements" />
+              </>
+            )}
+            {isAdmin && (
+              <>
+                <NavLinkMobile to="/admin/paiements" icon="💰" label="Paiements" />
+                <NavLinkMobile to="/admin/documents" icon="📑" label="Documents" />
+                <NavLinkMobile to="/admin/concours" icon="🎓" label="Concours" />
+                <NavLinkMobile to="/admin/departements" icon="🏢" label="Départements" />
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
 
-      {/* Content */}
+      {/* Contenu principal */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Outlet />
       </main>
@@ -369,4 +365,3 @@ export default function Layout() {
     </div>
   )
 }
-

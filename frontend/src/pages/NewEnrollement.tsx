@@ -119,24 +119,25 @@ const loadFilieres = useCallback(async (departementId: number) => {
   return () => controller.abort();
 }, []);
 
+// ✅ Chargement des départements
 useEffect(() => {
-  if (!formData.concours_id) {
-    setDepartements([]);
-    setFilieres([]);
-    return;
-  }
-  const cleanup = loadDepartements(parseInt(formData.concours_id));
-  return () => { cleanup.then(fn => fn?.()); };
-}, [formData.concours_id, loadDepartements]);
+  if (!formData.concours_id) return
+}, [formData.concours_id, loadDepartements])
 
+// ✅ Reset départements + filières quand concours_id est vide
 useEffect(() => {
-  if (!formData.departement_id) {
-    setFilieres([]);
-    return;
-  }
-  const cleanup = loadFilieres(parseInt(formData.departement_id));
-  return () => { cleanup.then(fn => fn?.()); };
-}, [formData.departement_id, loadFilieres]);
+  if (formData.concours_id) return
+}, [formData.concours_id])
+
+// ✅ Chargement des filières
+useEffect(() => {
+  if (!formData.departement_id) return
+}, [formData.departement_id, loadFilieres])
+
+// ✅ Reset filières quand departement_id est vide
+useEffect(() => {
+  if (formData.departement_id) return
+}, [formData.departement_id])
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     e.preventDefault(); // Empêcher tout comportement par défaut

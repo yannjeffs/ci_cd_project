@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
+import { AxiosError } from 'axios';
 
 interface Enrollement {
   id: number;
@@ -37,7 +38,7 @@ interface EnrollementContextType {
   error: string | null;
   setActiveEnrollement: (enrollement: Enrollement) => Promise<void>;
   refreshEnrollements: () => Promise<void>;
-  createEnrollement: (data: any) => Promise<Enrollement>;
+  createEnrollement: (data: unknown) => Promise<Enrollement>;
 }
 
 const EnrollementContext = createContext<EnrollementContextType | undefined>(undefined);
@@ -49,9 +50,7 @@ export const EnrollementProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
 
   // Charger les enrôlements au montage
-  useEffect(() => {
-    refreshEnrollements();
-  }, []);
+  
 
   // Charger les enrôlements depuis l'API
   const refreshEnrollements = async () => {
@@ -77,13 +76,16 @@ export const EnrollementProvider: React.FC<{ children: ReactNode }> = ({ childre
           setActiveEnrollementState(enrollementsData[0]);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur lors du chargement des enrôlements:', err);
-      setError(err.response?.data?.message || 'Erreur lors du chargement des enrôlements');
+      setError((err as AxiosError<{ message: string }>)?.response?.data?.message || 'Erreur lors du chargement des enrôlements');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  }, []);
 
   // Définir un enrôlement comme actif
   const setActiveEnrollement = async (enrollement: Enrollement) => {
@@ -92,14 +94,14 @@ export const EnrollementProvider: React.FC<{ children: ReactNode }> = ({ childre
       setActiveEnrollementState(enrollement);
       localStorage.setItem('active_enrollement_id', enrollement.id.toString());
       localStorage.setItem('active_concours_id', enrollement.concours_id.toString());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur lors du changement d\'enrôlement actif:', err);
       throw err;
     }
   };
 
   // Créer un nouvel enrôlement
-  const createEnrollement = async (data: any): Promise<Enrollement> => {
+  const createEnrollement = async (data: unknown): Promise<Enrollement> => {
     try {
       const response = await api.post('/enrollements/create', data);
       
@@ -116,7 +118,7 @@ export const EnrollementProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
       
       throw new Error('Erreur lors de la création de l\'enrôlement');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur lors de la création de l\'enrôlement:', err);
       throw err;
     }

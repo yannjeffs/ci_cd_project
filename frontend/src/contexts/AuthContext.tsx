@@ -79,19 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Charger le token au démarrage
   useEffect(() => {
     // Essayer de charger un token existant (dans l'ordre de priorité)
-    const tokenEtudiant = localStorage.getItem('token_etudiant')
-    const tokenAgent = localStorage.getItem('token_agent')
-    const tokenAdmin = localStorage.getItem('token_admin')
-    const tokenDefault = localStorage.getItem('token')
-
-    const existingToken = tokenEtudiant || tokenAgent || tokenAdmin || tokenDefault
-    
-    if (existingToken) {
-      setToken(existingToken)
-      fetchUser(existingToken)
-    } else {
-      setLoading(false)
-    }
+  
   }, [fetchUser])
 
   const login = async (email: string, password: string) => {

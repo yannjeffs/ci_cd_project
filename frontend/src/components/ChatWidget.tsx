@@ -32,18 +32,12 @@ const [messages, setMessages] = useState<Message[]>([buildWelcomeMessage(user?.p
 // useEffect uniquement pour charger les suggestions (pas de setState synchrone)
 useEffect(() => {
   if (!isOpen) return
-}, [isOpen, suggestions])
+}, [isOpen])
 
 // Mettre à jour le message de bienvenue si l'utilisateur se connecte en cours de session
 useEffect(() => {
   if (!user) return
-  setMessages(prev =>
-    prev.map(msg =>
-      msg.id === 'welcome'
-        ? { ...msg, content: buildWelcomeMessage(user.prenom).content }
-        : msg
-    )
-  )
+  
 }, [user])
 
   // Scroll automatique vers le bas
