@@ -38,7 +38,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
 
-  deploy:
+  deploy-kubernetes:
     needs: build-and-push
     runs-on: ubuntu-latest
 
@@ -76,3 +76,72 @@ jobs:
           kubectl apply -f k8s/
           kubectl rollout status deployment/frontend
           kubectl rollout status deployment/backend
+
+  deploy-o2switch:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Installer les dépendances Composer
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances npm
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React production
+        working-directory: frontend
+        run: npm run build
+
+      - name: Créer le fichier .env backend
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          sed -i "s|APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env
+          sed -i "s|APP_URL=.*|APP_URL=https://${{ secrets.O2SWITCH_DOMAIN }}|" .env
+          sed -i "s|DB_HOST=.*|DB_HOST=localhost|" .env
+          sed -i "s|DB_DATABASE=.*|DB_DATABASE=${{ secrets.DB_DATABASE }}|" .env
+          sed -i "s|DB_USERNAME=.*|DB_USERNAME=${{ secrets.DB_USERNAME }}|" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${{ secrets.DB_PASSWORD }}|" .env
+
+      - name: Déployer le backend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./backend/
+          server-dir: ${{ secrets.FTP_BACKEND_PATH }}/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/storage/logs/**
+            **/.env.example
+
+      - name: Déployer le frontend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./frontend/dist/
+          server-dir: ${{ secrets.FTP_FRONTEND_PATH }}/
+          exclude: |
+            **/.git*
+            **/.git*/**
