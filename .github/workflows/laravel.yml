@@ -13,7 +13,7 @@ concurrency:
 jobs:
 
   # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Tests Laravel (MySQL)
+  #  BACKEND — Tests Laravel  (MySQL)
   # ═══════════════════════════════════════════════════════════════
   backend-tests:
     name: 🐘 Backend — PHPUnit / Pest tests
