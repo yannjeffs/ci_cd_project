@@ -2,7 +2,7 @@ name: CD - Build & Deploy
 
 on:
   workflow_run:
-    workflows: ["Laravel", "Frontend CI"]
+    workflows: ["CI — Backend & Frontend"]
     branches: [develop]
     types: [completed]
 
