@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [develop]
 
-# ─────────────────────────────────────────────────────────────────
-#  ANNULER les runs en cours si un nouveau push arrive sur la même
-#  branche (évite de gaspiller des minutes CI inutilement)
-# ─────────────────────────────────────────────────────────────────
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -17,120 +13,11 @@ concurrency:
 jobs:
 
   # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Étape 1 : Installation des dépendances PHP
-  # ═══════════════════════════════════════════════════════════════
-  backend-install:
-    name: 🐘 Backend — Install dependencies
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
-
-      - name: Install Composer dependencies
-        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-
-      - name: Cache vendor
-        uses: actions/cache/save@v4
-        with:
-          path: ./backend/vendor
-          key: vendor-${{ github.sha }}
-
-  # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Étape 2 : Préparation de l'environnement
-  # ═══════════════════════════════════════════════════════════════
-  backend-env:
-    name: 🐘 Backend — Prepare .env
-    runs-on: ubuntu-latest
-    needs: backend-install
-    defaults:
-      run:
-        working-directory: ./backend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Copy .env
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-
-      - name: Cache .env
-        uses: actions/cache/save@v4
-        with:
-          path: ./backend/.env
-          key: env-${{ github.sha }}
-
-  # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Étape 3 : Génération de la clé applicative
-  # ═══════════════════════════════════════════════════════════════
-  backend-key:
-    name: 🐘 Backend — Generate app key
-    runs-on: ubuntu-latest
-    needs: backend-env
-    defaults:
-      run:
-        working-directory: ./backend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
-
-      - name: Restore vendor cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ./backend/vendor
-          key: vendor-${{ github.sha }}
-
-      - name: Restore .env cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ./backend/.env
-          key: env-${{ github.sha }}
-
-      - name: Generate application key
-        run: php artisan key:generate
-
-  # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Étape 4 : Permissions des dossiers
-  # ═══════════════════════════════════════════════════════════════
-  backend-permissions:
-    name: 🐘 Backend — Directory permissions
-    runs-on: ubuntu-latest
-    needs: backend-key
-    defaults:
-      run:
-        working-directory: ./backend
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set storage & cache permissions
-        run: chmod -R 777 storage bootstrap/cache
-
-  # ═══════════════════════════════════════════════════════════════
-  #  BACKEND — Étape 5 : Tests Laravel (MySQL)
+  #  BACKEND — Tests Laravel (MySQL)
   # ═══════════════════════════════════════════════════════════════
   backend-tests:
     name: 🐘 Backend — PHPUnit / Pest tests
     runs-on: ubuntu-latest
-    needs: backend-permissions
-
     defaults:
       run:
         working-directory: ./backend
@@ -159,17 +46,11 @@ jobs:
           php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
 
-      - name: Restore vendor cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ./backend/vendor
-          key: vendor-${{ github.sha }}
+      - name: Install Composer dependencies
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-      - name: Restore .env cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ./backend/.env
-          key: env-${{ github.sha }}
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Generate application key
         run: php artisan key:generate
@@ -188,13 +69,66 @@ jobs:
         run: php artisan test --stop-on-failure
 
   # ═══════════════════════════════════════════════════════════════
-  #  FRONTEND — CI (lint, types, tests, build)
-  #  Tourne EN PARALLÈLE du backend dès le début
+  #  BACKEND — Déploiement O2Switch via FTP
+  # ═══════════════════════════════════════════════════════════════
+  backend-deploy:
+    name: 🚀 Backend — Deploy to O2Switch via FTP
+    runs-on: ubuntu-latest
+    needs: backend-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql
+
+      - name: Install Composer dependencies (production)
+        working-directory: ./backend
+        run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --no-dev
+
+      - name: Créer le fichier .env
+        working-directory: ./backend
+        run: |
+          cp .env.example .env
+          sed -i "s|APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env
+          sed -i "s|APP_ENV=.*|APP_ENV=production|" .env
+          sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|" .env
+          sed -i "s|APP_URL=.*|APP_URL=https://${{ secrets.O2SWITCH_DOMAIN }}|" .env
+          sed -i "s|DB_HOST=.*|DB_HOST=localhost|" .env
+          sed -i "s|DB_DATABASE=.*|DB_DATABASE=${{ secrets.DB_DATABASE }}|" .env
+          sed -i "s|DB_USERNAME=.*|DB_USERNAME=${{ secrets.DB_USERNAME }}|" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${{ secrets.DB_PASSWORD }}|" .env
+
+      - name: Déployer le backend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          protocol: ftp
+          local-dir: ./backend/
+          server-dir: ${{ secrets.FTP_BACKEND_PATH }}/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/storage/logs/**
+            **/.env.example
+            **/tests/**
+
+  # ═══════════════════════════════════════════════════════════════
+  #  FRONTEND — CI (types, build)
   # ═══════════════════════════════════════════════════════════════
   frontend-ci:
     name: ⚛️  Frontend — Lint, Tests & Build
     runs-on: ubuntu-latest
-    # Pas de "needs" → démarre en même temps que backend-install
     defaults:
       run:
         working-directory: frontend
@@ -203,10 +137,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 24
+      - name: Setup Node.js 20  # ✅ 24 → 20 (LTS stable)
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -227,14 +161,12 @@ jobs:
           retention-days: 7
 
   # ═══════════════════════════════════════════════════════════════
-  #  DÉPLOIEMENT FRONTEND
-  #  Uniquement sur develop, après que le CI frontend soit vert
+  #  FRONTEND — Déploiement O2Switch via FTP
   # ═══════════════════════════════════════════════════════════════
   frontend-deploy:
     name: 🚀 Frontend — Deploy to O2Switch via FTP
     runs-on: ubuntu-latest
     needs: frontend-ci
-    # Ne se déclenche que sur un push direct sur develop (pas sur les PRs)
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
 
     steps:
@@ -244,13 +176,6 @@ jobs:
           name: frontend-dist
           path: dist/
 
-      # ─────────────────────────────────────────────────────────
-      #  Déploiement FTP vers O2Switch
-      #  Secrets requis dans GitHub → Settings → Secrets :
-      #    FTP_HOST     : ex. ftp.ngoune.cdwfs.net
-      #    FTP_USERNAME : ton identifiant FTP cPanel
-      #    FTP_PASSWORD : ton mot de passe FTP cPanel
-      # ─────────────────────────────────────────────────────────
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
