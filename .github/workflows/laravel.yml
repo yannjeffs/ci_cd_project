@@ -186,7 +186,7 @@ jobs:
           protocol: ftp
           local-dir: ./dist/
           server-dir: /public_html/ngoune/ci_cd_project/frontend/dist/
-          dangerous-clean-slate: false
+          dangerous-clean-slate: true
           exclude: |
             **/.git*
             **/.git*/**
