@@ -33,7 +33,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-linear-to-br from-blue-50 via-white to-blue-50">
       {/* Panneau gauche - Décoratif */}
-      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 to-blue-800 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-green-600 to-green-800 p-12 flex-col justify-between relative overflow-hidden">
         {/* Motif de fond */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
