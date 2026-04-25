@@ -4,10 +4,31 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Enrollement {
   id: number;
-  concours?: {
-    titre: string;
+  concours_id: number;
+  departement_id: number;
+  filiere_id: number;
+  niveau_id: number;
+  centre_depot_id: number;
+  date_enrolement: string;
+  statut: 'EN_ATTENTE' | 'COMPLET' | 'VALIDE' | 'REJETE'; // ✅ même ordre que le contexte
+  concours: {                // ✅ obligatoire comme dans le contexte
+    id: number;
+    nom: string;
+    code: string;
+    statut: string;
   };
-  statut: string;
+  departement: {             // ✅ obligatoire
+    id: number;
+    nom: string;
+  };
+  filiere: {                 // ✅ obligatoire
+    id: number;
+    nom: string;
+  };
+  niveau: {                  // ✅ obligatoire
+    id: number;
+    nom: string;
+  };
 }
 
 const ConcoursSelector: React.FC = () => {
